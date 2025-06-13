@@ -1,4 +1,4 @@
-// This file should be saved at /pages/api/generate-script.js
+// This file should be saved at /pages/api/generate-script.js .
 import OpenAI from 'openai';
 
 // Add the API configuration
