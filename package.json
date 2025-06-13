@@ -2,7 +2,6 @@
   "name": "cyber-security-learning-api",
   "version": "1.0.0",
   "description": "API for generating personalized cyber security learning videos with OpenAI and HeyGen",
-  "type": "module",
   "scripts": {
     "dev": "vercel dev",
     "build": "next build",
