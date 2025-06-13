@@ -1,9 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const chatService = require('../services/chatService');
+// This should actually be moved to pages/api/chat.js (not in src/routes/)
+import { chatService } from '../services/chatService';
 
-// Route to get a response from the chatbot
-router.post('/message', async (req, res) => {
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     const { message, context } = req.body;
     
@@ -15,7 +17,6 @@ router.post('/message', async (req, res) => {
     
     return res.json({ 
       response: response.content,
-      // Include any metadata needed for HeyGen avatar
       metadata: {
         tone: response.tone || 'friendly',
         emotion: response.emotion || 'neutral'
@@ -25,8 +26,4 @@ router.post('/message', async (req, res) => {
     console.error('Error in chat endpoint:', error);
     return res.status(500).json({ error: 'Failed to get response from chatbot' });
   }
-});
-
-// Additional routes if needed, e.g. for feedback history, user management, etc.
-
-module.exports = router;
+}
