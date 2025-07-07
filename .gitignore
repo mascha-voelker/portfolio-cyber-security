@@ -3,3 +3,7 @@ node_modules
 node_modules/
 .env
 .DS_Store
+.env
+portfolio-cyber-security/.env
+.next/
+.DS_Store
