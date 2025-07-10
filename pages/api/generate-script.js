@@ -1,5 +1,5 @@
 // This file should be saved at /pages/api/generate-script.js
-import OpenAI from 'openai';
+const { OpenAI } = require('openai');
 
 // Add the API configuration
 export const config = {
