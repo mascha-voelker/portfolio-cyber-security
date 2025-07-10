@@ -7,3 +7,4 @@ node_modules/
 portfolio-cyber-security/.env
 .next/
 .DS_Store
+.env
