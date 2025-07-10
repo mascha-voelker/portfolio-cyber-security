@@ -58,10 +58,6 @@ export default async function handler(req, res) {
             input_text: script,
             voice_id: "a426f8a763824ceaad3a2eb29c68e121", // Replace with your chosen voice ID
             speed: 1.0
-          },
-          background: {
-            type: "image",
-            value: "https://drive.google.com/file/d/1L1O5EWBgWGGsRF4mu6THCm4CfBjayvEk/view?usp=drive_link" // Use your actual public image URL here
           }
         }],
         dimension: {
@@ -77,9 +73,12 @@ export default async function handler(req, res) {
 
     if (!heygenResponse.ok) {
       console.error('HeyGen API Error:', heygenData);
+      console.error('Status:', heygenResponse.status);
+      console.error('Full response:', JSON.stringify(heygenData, null, 2));
       return res.status(400).json({ 
         error: 'HeyGen API error', 
-        details: heygenData.message || 'Unknown error'
+        details: heygenData.message || heygenData.error || 'Unknown error',
+        status: heygenResponse.status
       });
     }
 
