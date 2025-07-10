@@ -2,7 +2,7 @@
   "name": "storyline-ai-video-project",
   "version": "1.0.0",
   "scripts": {
-    "build": "echo \"No build step needed\"",
+    "build": "next build",
     "dev": "next dev"
   },
   "dependencies": {
