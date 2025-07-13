@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    reactStrictMode: true,
-    // No api configuration here
+  reactStrictMode: true,
+  experimental: {
+    outputFileTracingRoot: '.'
   }
-  
-  module.exports = nextConfig
+}
+
+module.exports = nextConfig
