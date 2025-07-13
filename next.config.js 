@@ -1,8 +1,0 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  // Remove the API configuration from here - it doesn't belong at this level
-}
-
-module.exports = nextConfig
-
