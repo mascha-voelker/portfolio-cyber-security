@@ -13,6 +13,7 @@ var showPointer = player.showPointer;
 var hidePointer = player.hidePointer;
 var slideWidth = player.slideWidth;
 var slideHeight = player.slideHeight;
+
 window.Script1 = function()
 {
   // Get the username from Storyline variable
@@ -52,8 +53,54 @@ console.log("Starting video generation for:", username);
 // Show loading message
 player.SetVar("LoadingMessage", "Generating your personalized video...");
 
-// API base URL
-var apiBase = "https://portfolio-cyber-security.vercel.app/api";
+// API base URL - MOVED TO GLOBAL SCOPE
+var apiBase = "https://cyber-security-sage.vercel.app/api";
+
+// Function to check video status - MOVED INSIDE Script2 AND FIXED
+function checkVideoStatus(videoId) {
+    console.log("Checking video status for ID:", videoId);
+    
+    fetch(apiBase + "/get-video?video_id=" + videoId)
+    .then(response => response.json())
+    .then(data => {
+        console.log("Video status response:", data);
+        
+        if (data.success) {
+            console.log("Video status:", data.status);
+            
+            if (data.status === "completed") {
+                // Video is ready!
+                console.log("Video URL received:", data.video_url);
+                sessionStorage.setItem('storyline_video_url', data.video_url);
+                player.SetVar("LoadingMessage", "Video ready! Loading...");
+                
+                // FIXED: Set the VideoURL variable properly
+                player.SetVar("VideoURL", data.video_url);
+                
+                // Go to next slide after short delay
+                setTimeout(() => {
+                    console.log("Jumping to next slide with video URL:", data.video_url);
+                    player.SetVar("JumpToNextSlide", true);
+                }, 1000);
+                
+            } else if (data.status === "failed") {
+                console.log("Video generation failed");
+                player.SetVar("LoadingMessage", "Video generation failed. Please try again.");
+            } else {
+                // Still processing, check again in 3 seconds
+                console.log("Video still processing, checking again in 3 seconds");
+                setTimeout(() => checkVideoStatus(videoId), 3000);
+            }
+        } else {
+            console.error("API returned success: false", data);
+            player.SetVar("LoadingMessage", "Error checking video status. Please try again.");
+        }
+    })
+    .catch(error => {
+        console.error("Error checking video status:", error);
+        player.SetVar("LoadingMessage", "Error checking video status. Please try again.");
+    });
+}
 
 // Step 1: Generate script
 fetch(apiBase + "/generate-script", {
@@ -105,41 +152,6 @@ fetch(apiBase + "/generate-script", {
     console.error("Error:", error);
     player.SetVar("LoadingMessage", "Sorry, there was an error generating your video. Please try again.");
 });
-
-// Function to check video status
-function checkVideoStatus(videoId) {
-    var player = GetPlayer();
-    
-    fetch(apiBase + "/get-video?video_id=" + videoId)
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log("Video status:", data.status);
-            
-            if (data.status === "completed") {
-                // Video is ready!
-                sessionStorage.setItem('storyline_video_url', data.video_url);
-                player.SetVar("LoadingMessage", "Video ready! Loading...");
-                
-			// Go to next slide after short delay
-			setTimeout(() => {
-    			player.SetVar("VideoURL", data.video_url);
-    			player.SetVar("JumpToNextSlide", true);
-			}, 1000);
-                
-            } else if (data.status === "failed") {
-                player.SetVar("LoadingMessage", "Video generation failed. Please try again.");
-            } else {
-                // Still processing, check again in 3 seconds
-                setTimeout(() => checkVideoStatus(videoId), 3000);
-            }
-        }
-    })
-    .catch(error => {
-        console.error("Error checking video status:", error);
-        player.SetVar("LoadingMessage", "Error checking video status. Please try again.");
-    });
-}
 }
 
 window.Script3 = function()
@@ -147,7 +159,11 @@ window.Script3 = function()
   var player = GetPlayer();
 var videoURL = player.GetVar("VideoURL");
 
-if (videoURL && videoURL !== "") {
+console.log("Script3 called, VideoURL:", videoURL);
+
+if (videoURL && videoURL !== "" && videoURL !== null) {
+    console.log("Creating video element with URL:", videoURL);
+    
     // Create video element
     var videoHTML = '<video width="640" height="360" controls autoplay>' +
                    '<source src="' + videoURL + '" type="video/mp4">' +
@@ -162,12 +178,26 @@ if (videoURL && videoURL !== "") {
     container.style.left = '50%';
     container.style.transform = 'translate(-50%, -50%)';
     container.style.zIndex = '9999';
+    container.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    container.style.padding = '20px';
+    container.style.borderRadius = '10px';
     
     document.body.appendChild(container);
     
-    console.log("Video loaded:", videoURL);
+    console.log("Video element created and added to page");
 } else {
     console.log("No video URL available, VideoURL:", videoURL);
+    
+    // Try to get from session storage as backup
+    var backupURL = sessionStorage.getItem('storyline_video_url');
+    if (backupURL) {
+        console.log("Found backup URL in session storage:", backupURL);
+        player.SetVar("VideoURL", backupURL);
+        // Retry Script3
+        setTimeout(() => window.Script3(), 500);
+    } else {
+        console.log("No backup URL found either");
+    }
 }
 }
 
