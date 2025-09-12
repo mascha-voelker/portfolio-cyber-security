@@ -1,6 +1,4 @@
-// This file should be saved at /pages/api/get-video.js
-
-// Add the API configuration
+// Fixed /pages/api/get-video.js
 export const config = {
   api: {
     bodyParser: {
@@ -8,9 +6,9 @@ export const config = {
     },
     externalResolver: true,
   },
+  maxDuration: 15,
 };
 
-// Set up CORS headers helper
 const setCorsHeaders = (res) => {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,55 +20,87 @@ const setCorsHeaders = (res) => {
 };
 
 export default async function handler(req, res) {
-  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     setCorsHeaders(res);
     return res.status(200).end();
   }
 
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    setCorsHeaders(res);
+    return res.status(405).json({ 
+      success: false,
+      error: 'Method not allowed. Please use GET.' 
+    });
   }
 
   try {
-    // Set CORS headers
     setCorsHeaders(res);
     const { video_id } = req.query;
     
-    if (!video_id) {
-      return res.status(400).json({ error: 'video_id is required' });
+    if (!video_id || typeof video_id !== 'string') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'video_id is required and must be a string' 
+      });
     }
 
-    // Check video generation status
+    console.log('Checking status for video ID:', video_id);
+
+    // FIXED: Use v2 API to match create-video.js
     const heygenResponse = await fetch(`https://api.heygen.com/v1/video_status.get?video_id=${video_id}`, {
       method: 'GET',
       headers: {
         'X-API-KEY': process.env.HEYGEN_API_KEY,
+        'Content-Type': 'application/json',
       }
     });
 
-    const heygenData = await heygenResponse.json();
-
     if (!heygenResponse.ok) {
-      console.error('HeyGen Status Check Error:', heygenData);
+      let errorData;
+      try {
+        errorData = await heygenResponse.json();
+      } catch (parseError) {
+        errorData = { message: `HTTP ${heygenResponse.status}` };
+      }
+
+      console.error('HeyGen Status Check Error:', {
+        status: heygenResponse.status,
+        statusText: heygenResponse.statusText,
+        data: errorData
+      });
+
       return res.status(400).json({ 
+        success: false,
         error: 'HeyGen API error', 
-        details: heygenData.message || 'Unknown error'
+        details: errorData.message || errorData.error || `HTTP ${heygenResponse.status}`
       });
     }
 
-    // Return status and video URL if completed
-    res.status(200).json({
+    const heygenData = await heygenResponse.json();
+    console.log('HeyGen response:', heygenData);
+
+    // Handle the v2 API response structure
+    const status = heygenData.data?.status || 'unknown';
+    const videoUrl = heygenData.data?.video_url || null;
+    const progress = heygenData.data?.progress || 0;
+
+    return res.status(200).json({
       success: true,
-      status: heygenData.data.status,
-      video_url: heygenData.data.video_url || null,
-      progress: heygenData.data.progress || 0,
-      message: getStatusMessage(heygenData.data.status)
+      status: status,
+      video_url: videoUrl,
+      progress: progress,
+      message: getStatusMessage(status)
     });
 
   } catch (error) {
-    console.error('Error checking video status:', error);
-    res.status(500).json({ 
+    console.error('Error checking video status:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    
+    return res.status(500).json({ 
+      success: false,
       error: 'Internal server error', 
       details: error.message 
     });
@@ -83,6 +113,7 @@ function getStatusMessage(status) {
     case 'processing': return 'Video is being generated';
     case 'completed': return 'Video is ready';
     case 'failed': return 'Video generation failed';
-    default: return 'Unknown status';
+    case 'error': return 'An error occurred during video generation';
+    default: return `Status: ${status}`;
   }
 }

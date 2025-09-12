@@ -1,7 +1,6 @@
-// This file should be saved at /pages/api/generate-script.js
-const { OpenAI } = require('openai');
+// Fixed /pages/api/generate-script.js with debugging
+import { OpenAI } from 'openai';
 
-// Add the API configuration
 export const config = {
   api: {
     bodyParser: {
@@ -9,9 +8,9 @@ export const config = {
     },
     externalResolver: true,
   },
+  maxDuration: 30,
 };
 
-// Set up CORS headers helper
 const setCorsHeaders = (res) => {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,144 +21,105 @@ const setCorsHeaders = (res) => {
   );
 };
 
-// Initialize OpenAI with your API key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Function to create video with HeyGen
-const createHeyGenVideo = async (script, username) => {
-  try {
-    const heygenResponse = await fetch('https://api.heygen.com/v2/video/generate', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': process.env.HEYGEN_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        video_inputs: [{
-          character: {
-            type: "avatar",
-            avatar_id: "Raul_expressive_2024112501", // Replace with your chosen avatar ID
-            avatar_style: "normal"
-          },
-          voice: {
-            type: "text",
-            input_text: script,
-            voice_id: "a426f8a763824ceaad3a2eb29c68e121", // Replace with your chosen voice ID
-            speed: 1.0
-          },
-          background: {
-            type: "color",
-            value: "#ffffff" // White background, customize as needed
-          }
-        }],
-        dimension: {
-          width: 1280,
-          height: 720
-        },
-        aspect_ratio: "16:9",
-        test: false // Set to true for testing without using credits
-      })
-    });
-
-    const heygenData = await heygenResponse.json();
-
-    if (!heygenResponse.ok) {
-      throw new Error(`HeyGen API error: ${heygenData.message || 'Unknown error'}`);
-    }
-
-    return {
-      success: true,
-      video_id: heygenData.data.video_id
-    };
-
-  } catch (error) {
-    console.error('Error creating HeyGen video:', error);
-    throw error;
-  }
-};
-
 export default async function handler(req, res) {
-  // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     setCorsHeaders(res);
     return res.status(200).end();
   }
   
-  // Ensure we're handling a POST request
   if (req.method !== 'POST') {
+    setCorsHeaders(res);
     return res.status(405).json({ error: 'Method not allowed. Please use POST.' });
   }
 
   try {
-    // Set CORS headers
     setCorsHeaders(res);
     
-    // Get the username and optional createVideo flag from the request body
-    const { username, createVideo = false } = req.body;
+    // DEBUG CODE - Add this to see what's happening with the API key
+    console.log('Environment debug:', {
+      hasKey: !!process.env.OPENAI_API_KEY,
+      keyLength: process.env.OPENAI_API_KEY?.length,
+      keyStart: process.env.OPENAI_API_KEY?.substring(0, 10),
+      allEnvKeys: Object.keys(process.env).filter(key => key.includes('OPENAI'))
+    });
     
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' });
+    const { userStrategies, userName } = req.body;
+    
+    if (!userStrategies || typeof userStrategies !== 'string' || userStrategies.trim() === '') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'userStrategies is required and must be a non-empty string' 
+      });
     }
 
-    // Create the prompt for OpenAI
-    const prompt = `'Generate a welcome video script for a user named ${username}. You act as Cilian, an IT specialist from the IT department of the St. Johns Medical Centre in Dublin, Ireland. Your script should be almost identical to this one. Please only change a word or two but stay in the context.   - Welcome ${username} - I'm Cillian from the IT department. As you might know, we've been getting a lot of phishing emails lately … I'm glad seeing you contributing to the company's cyber security. And who knows, maybe you learn a thing or two for your private digital security … - '`;
+    console.log('Generating script for strategies:', userStrategies.substring(0, 100) + '...');
 
-    // Call OpenAI API to generate the script using the chat completions endpoint
+    // Create the prompt for analyzing strategies
+const prompt = `You are Graham, an IT specialist from the IT department at St. Johns Medical Centre in Dublin, Ireland. You are recording a short AI avatar video for a colleague named ${userName} who has submitted some cybersecurity strategies.
+
+Your task is to create a personalized video script (30–45 seconds long). Please follow these exact steps:
+
+1. Start directly in role. Do not describe a scene or setting. Immediately say: "Hello ${userName}, I'm Graham, Cillian's colleague. Nice to meet you."
+
+2. Acknowledge the specific text the user submitted ("${userStrategies}") and provide feedback on their strategies based on the 4 phishing red flags below.
+
+3. Evaluate their strategies against these 4 phishing red flags they will learn in the training:
+   - Unfamiliar sender addresses
+   - Fake domains pretending to be ours
+   - Suspicious or unexpected links and files
+   - Urgent language pressuring quick action
+
+4. Give specific feedback on their submitted strategies:
+   - If they mentioned strategies that match one or more of these 4 red flags, acknowledge what they got right and say they already know something about identifying phishing attempts
+   - If their strategies don't match these 4 red flags, gently redirect them toward these specific areas without criticizing their input
+   - Only discuss additional cybersecurity tips if the user already mentioned them in their strategies
+
+5. End with a short motivational closing such as: "Let's get started and work together to create a safe working environment."
+
+Important style rules:
+- Keep it conversational, professional, and friendly
+- Do not describe Graham physically, his environment, or the video setting — only write what Graham says
+- Focus feedback specifically on the 4 red flags listed above
+- Keep the length within 30–45 seconds
+`;
+
+    // Call OpenAI API with better error handling
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Using a valid model
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that creates personalized welcome scripts."
+          content: "You are Cillian, a helpful IT specialist who provides personalized cybersecurity feedback through video scripts."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 250,
+      max_tokens: 500, // Increased for longer script
       temperature: 0.7,
     });
 
-    // Extract the generated script
     const generatedScript = completion.choices[0].message.content.trim();
 
-    // If createVideo is false, just return the script (your original functionality)
-    if (!createVideo) {
-      return res.status(200).json({
-        success: true,
-        script: generatedScript
-      });
-    }
+    console.log('Script generated successfully, length:', generatedScript.length);
 
-    // If createVideo is true, also create the HeyGen video
-    try {
-      const videoResult = await createHeyGenVideo(generatedScript, username);
-      
-      return res.status(200).json({
-        success: true,
-        script: generatedScript,
-        video_id: videoResult.video_id,
-        message: 'Script generated and video creation started'
-      });
-      
-    } catch (videoError) {
-      // If video creation fails, still return the script
-      console.error('Video creation failed:', videoError);
-      return res.status(200).json({
-        success: true,
-        script: generatedScript,
-        video_error: 'Video creation failed, but script was generated successfully',
-        video_error_details: videoError.message
-      });
-    }
+    return res.status(200).json({
+      success: true,
+      script: generatedScript
+    });
 
   } catch (error) {
-    console.error('Error generating script:', error);
+    console.error('Error generating script:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.data
+    });
     
-    // Determine the error status code and message
     const statusCode = error.response?.status || 500;
     const errorMessage = error.response?.data?.error?.message || error.message || 'Failed to generate script';
     
