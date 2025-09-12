@@ -70,7 +70,8 @@ var userName = sessionStorage.getItem('storyline_userName');
 var displayName = userName && userName.trim() !== '' ? userName : "colleague";
 
 console.log("Final strategies to use:", finalStrategies);
-console.log("Display name:", displayName); // For debugging
+console.log("DEBUG VIDEO: Retrieved userName from sessionStorage:", userName);
+console.log("DEBUG VIDEO: Final displayName:", displayName);
 
 if (!finalStrategies || finalStrategies.trim() === '') {
     console.log("No strategies found");
@@ -90,11 +91,11 @@ var maxPollingAttempts = 240;
 function checkVideoStatus(videoId) {
     console.log(`Checking video status for ID: ${videoId} (attempt ${pollingAttempts + 1}/${maxPollingAttempts})`);
     
-if (pollingAttempts >= maxPollingAttempts) {
-    console.error("Maximum polling attempts reached after 12 minutes");
-    player.SetVar("LoadingMessage", "Video processing took longer than expected but may have completed.");
-    return;
-}
+    if (pollingAttempts >= maxPollingAttempts) {
+        console.error("Maximum polling attempts reached after 12 minutes");
+        player.SetVar("LoadingMessage", "Video processing took longer than expected but may have completed.");
+        return;
+    }
 
     pollingAttempts++;
     
@@ -139,6 +140,11 @@ function makeAPICall() {
     currentRetry++;
     console.log(`Making API call attempt ${currentRetry}/${maxRetries}`);
 
+    console.log("DEBUG API: Sending data:", {
+        userStrategies: finalStrategies,
+        userName: displayName
+    });
+
     fetch(apiBase + "/generate-script", {
         method: 'POST',
         headers: {
@@ -146,7 +152,7 @@ function makeAPICall() {
         },
         body: JSON.stringify({
             userStrategies: finalStrategies,
-    		userName: displayName
+            userName: displayName
         })
     })
     .then(response => response.json())
