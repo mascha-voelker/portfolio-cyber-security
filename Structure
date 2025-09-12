@@ -1,4 +1,8 @@
 project-root/
+├── storyline/          # Your Storyline HTML5 files go here
+│   ├── story.html
+│   ├── story_content/
+│   └── mobile/
 ├── api/                       # Serverless API endpoints
 │   ├── generate-script.js     # Calls OpenAI to generate a script
 │   ├── create-video.js        # Sends script to HeyGen to generate a video

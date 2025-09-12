@@ -1,16 +1,33 @@
 {
-  "name": "storyline-ai-video-project",
-  "version": "1.0.1",
+  "name": "cyber-security-learning-api",
+  "version": "1.0.0",
+  "description": "API for generating personalized cyber security learning videos with OpenAI and HeyGen",
   "scripts": {
+    "dev": "vercel dev",
     "build": "next build",
-    "dev": "next dev"
+    "start": "vercel start"
   },
   "dependencies": {
-    "axios": "^1.6.2",
-    "dotenv": "^16.3.1",
-    "next": "^15.3.1",
-    "openai": "^4.98.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
-  }
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "express": "^4.18.0",
+    "openai": "^4.67.1"
+  },
+  "devDependencies": {
+    "vercel": "^37.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "api",
+    "openai",
+    "heygen",
+    "video-generation",
+    "cyber-security",
+    "learning"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 }
